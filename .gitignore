@@ -1,0 +1,42 @@
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Android
+android/app/*.jks
+android/key.properties
+android/.gradle/
+android/local.properties
+android/app/google-services.json
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Runner/GoogleService-Info.plist
+
+# Miscellaneous
+*.log
+*.swp
+.DS_Store
+
+# Environment and configuration files
+.env
+.env.local
+.env.*.local
+lib/config/api_constants.dart
+
+# Pub cache
+.pub-cache/
+.pub/
+
