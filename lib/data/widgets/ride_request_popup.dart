@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/driver_location_service.dart';
 
 /// Global overlay widget to show ride request popup anywhere in the app
@@ -168,7 +170,11 @@ class _RideRequestPopupState extends State<RideRequestPopup>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
-              color: Color(0xFF0066CC),
+              gradient: LinearGradient(
+                colors: [Color(0xFF0066CC), Color(0xFF0052A3)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
@@ -177,21 +183,21 @@ class _RideRequestPopupState extends State<RideRequestPopup>
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.directions_car,
-                      color: Colors.white, size: 24),
+                      color: Colors.white, size: 26),
                 ),
-                const SizedBox(width: 12),
-                const Expanded(
+                const SizedBox(width: 14),
+                Expanded(
                   child: Text(
                     'New Ride Request',
-                    style: TextStyle(
+                    style: GoogleFonts.geologica(
                       color: Colors.white,
-                      fontSize: 18,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -199,7 +205,7 @@ class _RideRequestPopupState extends State<RideRequestPopup>
                 // Timer countdown
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: _remainingSeconds <= 10
                         ? Colors.red
@@ -213,16 +219,17 @@ class _RideRequestPopupState extends State<RideRequestPopup>
                         color: _remainingSeconds <= 10
                             ? Colors.white
                             : Colors.white70,
-                        size: 16,
+                        size: 18,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 6),
                       Text(
                         '${_remainingSeconds}s',
-                        style: TextStyle(
+                        style: GoogleFonts.geologica(
                           color: _remainingSeconds <= 10
                               ? Colors.white
                               : Colors.white70,
                           fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
                     ],
@@ -268,49 +275,93 @@ class _RideRequestPopupState extends State<RideRequestPopup>
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                // Rider info
+                // Rider info with contact
                 if (rider != null)
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.blue.shade100,
-                        child: Text(
-                          rider['firstName']
-                                  ?.toString()
-                                  .substring(0, 1)
-                                  .toUpperCase() ??
-                              'R',
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontWeight: FontWeight.bold,
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade100),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Colors.blue.shade100,
+                          child: Text(
+                            rider['firstName']
+                                    ?.toString()
+                                    .substring(0, 1)
+                                    .toUpperCase() ??
+                                'R',
+                            style: GoogleFonts.geologica(
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${rider['firstName'] ?? ''} ${rider['lastName'] ?? ''}'
-                                  .trim(),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${rider['firstName'] ?? ''} ${rider['lastName'] ?? ''}'
+                                    .trim(),
+                                style: GoogleFonts.geologica(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
                               ),
-                            ),
-                            Text(
-                              'Customer',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 12,
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Icon(Icons.phone,
+                                      size: 14, color: Colors.grey.shade600),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    rider['phoneNumber'] ?? 'No phone',
+                                    style: GoogleFonts.geologica(
+                                      color: Colors.grey.shade700,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        // Call button
+                        if (rider['phoneNumber'] != null)
+                          GestureDetector(
+                            onTap: () async {
+                              final phone = rider['phoneNumber'];
+                              final uri = Uri.parse('tel:$phone');
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.green.withOpacity(0.3),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(Icons.phone,
+                                  color: Colors.white, size: 22),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
 
                 const SizedBox(height: 16),
@@ -365,18 +416,18 @@ class _RideRequestPopupState extends State<RideRequestPopup>
                       );
                     },
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 18),
                       side: const BorderSide(color: Colors.red, width: 2),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'DECLINE',
-                      style: TextStyle(
+                      style: GoogleFonts.geologica(
                         color: Colors.red,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 15,
                       ),
                     ),
                   ),
@@ -404,15 +455,16 @@ class _RideRequestPopupState extends State<RideRequestPopup>
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 18),
                       backgroundColor: Colors.green,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
+                      elevation: 3,
                     ),
-                    child: const Text(
+                    child: Text(
                       'ACCEPT RIDE',
-                      style: TextStyle(
+                      style: GoogleFonts.geologica(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -432,21 +484,21 @@ class _RideRequestPopupState extends State<RideRequestPopup>
       String value, String label, IconData icon, Color color) {
     return Column(
       children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(height: 4),
+        Icon(icon, color: color, size: 22),
+        const SizedBox(height: 6),
         Text(
           value,
-          style: TextStyle(
+          style: GoogleFonts.geologica(
             fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontSize: 17,
             color: color,
           ),
         ),
         Text(
           label,
-          style: TextStyle(
+          style: GoogleFonts.geologica(
             color: Colors.grey.shade600,
-            fontSize: 10,
+            fontSize: 11,
           ),
         ),
       ],
@@ -469,14 +521,14 @@ class _RideRequestPopupState extends State<RideRequestPopup>
             children: [
               Text(
                 title,
-                style: TextStyle(
+                style: GoogleFonts.geologica(
                   color: Colors.grey.shade600,
                   fontSize: 12,
                 ),
               ),
               Text(
                 address,
-                style: const TextStyle(
+                style: GoogleFonts.geologica(
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
                 ),

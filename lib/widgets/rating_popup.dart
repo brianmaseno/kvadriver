@@ -167,7 +167,8 @@ class _RatingPopupState extends State<RatingPopup>
                 // Partner avatar and name
                 CircleAvatar(
                   radius: 40,
-                  backgroundColor: const Color(0xFF0066CC).withValues(alpha: 0.2),
+                  backgroundColor:
+                      const Color(0xFF0066CC).withValues(alpha: 0.2),
                   backgroundImage: widget.partnerImage != null
                       ? NetworkImage(widget.partnerImage!)
                       : null,

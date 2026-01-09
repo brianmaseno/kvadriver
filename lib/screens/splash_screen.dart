@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../data/providers/app_provider.dart';
 import '../data/services/api_service.dart';
 
@@ -81,9 +82,9 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'KVA Driver',
-              style: TextStyle(
+              style: GoogleFonts.geologica(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,

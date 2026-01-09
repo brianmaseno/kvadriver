@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../data/providers/app_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -57,28 +58,35 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 20),
-                
+
                 const SizedBox(height: 32),
-                
-                const Text(
+
+                Text(
                   'Welcome back, enter your phone number to login',
-                  style: TextStyle(
+                  style: GoogleFonts.geologica(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
 
                 const SizedBox(height: 32),
-                
+
                 // Phone field
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
+                  style: GoogleFonts.geologica(),
                   decoration: InputDecoration(
                     labelText: 'Phone Number',
+                    labelStyle: GoogleFonts.geologica(),
                     hintText: '+1234567890',
+                    hintStyle: GoogleFonts.geologica(color: Colors.grey),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF0066CC)),
                     ),
                   ),
                   validator: (value) {
@@ -88,9 +96,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // Continue button
                 SizedBox(
                   height: 56,
@@ -112,24 +120,29 @@ class _LoginScreenState extends State<LoginScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text(
+                        : Text(
                             'Continue',
-                            style: TextStyle(
+                            style: GoogleFonts.geologica(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 Center(
                   child: TextButton(
                     onPressed: () {
                       Navigator.of(context).pushNamed('/register');
                     },
-                    child: const Text("Don't have an account? SignUp"),
+                    child: Text(
+                      "Don't have an account? SignUp",
+                      style: GoogleFonts.geologica(
+                        color: const Color(0xFF0066CC),
+                      ),
+                    ),
                   ),
                 ),
               ],

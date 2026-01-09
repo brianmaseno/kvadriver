@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../data/providers/app_provider.dart';
 import '../../data/services/api_service.dart';
 
@@ -127,11 +128,14 @@ class _DriverOtpVerifyScreenState extends State<DriverOtpVerifyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verify Phone Number'),
+        title: Text(
+          'Verify Phone Number',
+          style: GoogleFonts.geologica(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: const Color(0xFF0066CC),
         foregroundColor: Colors.white,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -142,24 +146,28 @@ class _DriverOtpVerifyScreenState extends State<DriverOtpVerifyScreen> {
             Text(
               'Enter the verification code sent to\n$_phoneNumber',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
+              style: GoogleFonts.geologica(fontSize: 16),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'For testing: Use OTP 123456',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              style: GoogleFonts.geologica(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 40),
             TextFormField(
               controller: _otpController,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 28, letterSpacing: 12),
+              style: GoogleFonts.geologica(fontSize: 28, letterSpacing: 12),
               maxLength: 6,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Verification Code',
-                border: OutlineInputBorder(),
+                labelStyle: GoogleFonts.geologica(),
+                border: const OutlineInputBorder(),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF0066CC)),
+                ),
                 counterText: '',
               ),
             ),
@@ -169,18 +177,32 @@ class _DriverOtpVerifyScreenState extends State<DriverOtpVerifyScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0066CC),
                 minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: _isLoading
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Verify & Complete Registration',
-                      style: TextStyle(color: Colors.white, fontSize: 16)),
+                  : Text(
+                      'Verify & Complete Registration',
+                      style: GoogleFonts.geologica(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
             const SizedBox(height: 16),
             TextButton(
               onPressed: _isLoading ? null : _resendOtp,
-              child: const Text('Resend Code'),
+              child: Text(
+                'Resend Code',
+                style: GoogleFonts.geologica(
+                  color: const Color(0xFF0066CC),
+                ),
+              ),
             ),
-            const Spacer(),
+            const SizedBox(height: 40),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -188,19 +210,20 @@ class _DriverOtpVerifyScreenState extends State<DriverOtpVerifyScreen> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.orange),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.orange),
-                  SizedBox(width: 12),
+                  const Icon(Icons.info_outline, color: Colors.orange),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'After verification, your application will be reviewed. This typically takes 1-2 business days.',
-                      style: TextStyle(fontSize: 12),
+                      style: GoogleFonts.geologica(fontSize: 12),
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 40),
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class GetHelpScreen extends StatelessWidget {
   const GetHelpScreen({super.key});
@@ -7,7 +8,10 @@ class GetHelpScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Get Help'),
+        title: Text(
+          'Get Help',
+          style: GoogleFonts.geologica(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
       ),
@@ -16,53 +20,45 @@ class GetHelpScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'How can we help you?',
-              style: TextStyle(
+              style: GoogleFonts.geologica(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
             const SizedBox(height: 24),
-            
             _buildHelpCategory(
               'Trip Issues',
               'Problems with rides, payments, or passengers',
               Icons.directions_car,
               () {},
             ),
-            
             _buildHelpCategory(
               'Account & Profile',
               'Update your information or account settings',
               Icons.person,
               () {},
             ),
-            
             _buildHelpCategory(
               'Vehicle & Documents',
               'Vehicle registration, insurance, or license issues',
               Icons.description,
               () {},
             ),
-            
             _buildHelpCategory(
               'Earnings & Payments',
               'Questions about your earnings or payment methods',
               Icons.payment,
               () {},
             ),
-            
             _buildHelpCategory(
               'App Issues',
               'Technical problems or app not working properly',
               Icons.bug_report,
               () {},
             ),
-            
             const SizedBox(height: 32),
-            
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -78,17 +74,17 @@ class GetHelpScreen extends StatelessWidget {
                     color: Color(0xFF0066CC),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Need immediate help?',
-                    style: TextStyle(
+                    style: GoogleFonts.geologica(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Contact our 24/7 support team',
-                    style: TextStyle(color: Colors.grey),
+                    style: GoogleFonts.geologica(color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
@@ -99,9 +95,9 @@ class GetHelpScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Call Support',
-                      style: TextStyle(color: Colors.white),
+                      style: GoogleFonts.geologica(color: Colors.white),
                     ),
                   ),
                 ],
@@ -133,13 +129,13 @@ class GetHelpScreen extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: const TextStyle(
+          style: GoogleFonts.geologica(
             fontWeight: FontWeight.w600,
           ),
         ),
         subtitle: Text(
           description,
-          style: const TextStyle(
+          style: GoogleFonts.geologica(
             color: Colors.grey,
             fontSize: 12,
           ),

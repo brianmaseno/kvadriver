@@ -67,11 +67,11 @@ class ApiService {
     }
   }
 
-  // Request OTP
+  // Request OTP (uses hardcoded 123456)
   static Future<Map<String, dynamic>> requestOtp(String phoneNumber) async {
     try {
-      print('🟡 API: Requesting OTP');
-      print('🟡 URL: $baseUrl/auth/request-otp');
+      print('🟡 API: Requesting OTP (local - use 123456)');
+      print('🟡 URL: $baseUrl/auth/localotp/request-otp');
       print('🟡 Body: ${jsonEncode({'phoneNumber': phoneNumber})}');
 
       // For OTP requests, don't include auth headers as user might not be authenticated yet
@@ -80,7 +80,7 @@ class ApiService {
       };
 
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/request-otp'),
+        Uri.parse('$baseUrl/auth/localotp/request-otp'),
         headers: headers,
         body: jsonEncode({'phoneNumber': phoneNumber}),
       );
@@ -95,17 +95,17 @@ class ApiService {
     }
   }
 
-  // Verify OTP
+  // Verify OTP (uses hardcoded 123456)
   static Future<Map<String, dynamic>> verifyOtp(
       String phoneNumber, String otp) async {
     try {
-      print('🟢 API: Verifying OTP');
-      print('🟢 URL: $baseUrl/auth/verify-otp');
+      print('🟢 API: Verifying OTP (local - expecting 123456)');
+      print('🟢 URL: $baseUrl/auth/localotp/verify-otp');
       print('🟢 Body: ${jsonEncode({'phoneNumber': phoneNumber, 'otp': otp})}');
 
       final headers = await _getHeaders();
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/verify-otp'),
+        Uri.parse('$baseUrl/auth/localotp/verify-otp'),
         headers: headers,
         body: jsonEncode({'phoneNumber': phoneNumber, 'otp': otp}),
       );

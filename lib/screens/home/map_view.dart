@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../data/providers/app_provider.dart';
 import '../../data/providers/ride_provider.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/driver_location_service.dart';
 import '../../data/models/models.dart' as models;
+import '../../data/widgets/ride_request_popup.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -24,6 +26,8 @@ class _HomeState extends State<Home> {
   bool _locationLoaded = false;
   String _approvalStatus = 'pending';
   bool _statusLoaded = false;
+  bool _showRidePopup = false;
+  Map<String, dynamic>? _currentRideRequest;
 
   @override
   void initState() {
@@ -33,6 +37,21 @@ class _HomeState extends State<Home> {
     // Load pending rides initially
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadPendingRides();
+      _listenForRideRequests();
+    });
+  }
+
+  void _listenForRideRequests() {
+    final locationService = context.read<DriverLocationService>();
+    // Listen to ride requests from location service
+    locationService.addListener(() {
+      if (locationService.pendingRideRequests.isNotEmpty && mounted) {
+        final newRequest = locationService.pendingRideRequests.last;
+        setState(() {
+          _currentRideRequest = newRequest;
+          _showRidePopup = true;
+        });
+      }
     });
   }
 
@@ -117,8 +136,14 @@ class _HomeState extends State<Home> {
     final rideProvider = context.watch<RideProvider>();
     final appProvider = context.watch<AppProvider>();
     final locationService = context.watch<DriverLocationService>();
+
+    // Filter to only show active ride requests (not cancelled, expired, or already taken)
     final pendingRides = rideProvider.userRides
-        .where((ride) => ride.status == 'requested')
+        .where((ride) =>
+            ride.status == 'requested' &&
+            ride.status != 'cancelled' &&
+            ride.status != 'expired' &&
+            ride.status != 'accepted')
         .toList();
 
     // Also include ride requests from the location service
@@ -128,7 +153,11 @@ class _HomeState extends State<Home> {
     // Add rides from location service that aren't already in the list
     for (var ride in locationServiceRides) {
       final rideId = ride['id']?.toString();
-      if (rideId != null && !allRides.any((r) => r.id.toString() == rideId)) {
+      final rideStatus = ride['status']?.toString();
+      // Only add if active and not already in list
+      if (rideId != null &&
+          rideStatus == 'requested' &&
+          !allRides.any((r) => r.id.toString() == rideId)) {
         // Convert to ride format or just use the pending rides
       }
     }
@@ -280,103 +309,154 @@ class _HomeState extends State<Home> {
               ),
             ),
 
-          // Online/Offline status pill (top center, Google Maps style)
+          // Online/Offline status button (top center - BIGGER and more prominent)
           Positioned(
             top: MediaQuery.of(context).padding.top +
-                (_statusLoaded && _approvalStatus != 'approved' ? 100 : 16),
+                (_statusLoaded && _approvalStatus != 'approved' ? 110 : 16),
             left: 20,
             right: 20,
             child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // User avatar/profile indicator
-                    if (currentUser != null) ...[
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: Colors.blue.withOpacity(0.2),
-                        child: Text(
-                          currentUser!.firstName.isNotEmpty
-                              ? currentUser!.firstName[0].toUpperCase()
-                              : 'U',
-                          style: const TextStyle(
-                            color: Colors.blue,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+              child: GestureDetector(
+                onTap: _approvalStatus == 'approved'
+                    ? () async {
+                        await _toggleOnlineStatus(locationService);
+                      }
+                    : () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'You must be verified to go online',
+                              style: GoogleFonts.geologica(),
+                            ),
+                            backgroundColor: Colors.orange,
                           ),
-                        ),
+                        );
+                      },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: locationService.isOnline
+                          ? [Colors.green[600]!, Colors.green[700]!]
+                          : _approvalStatus == 'approved'
+                              ? [Colors.grey[600]!, Colors.grey[700]!]
+                              : [Colors.orange[400]!, Colors.orange[600]!],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (locationService.isOnline
+                                ? Colors.green
+                                : _approvalStatus == 'approved'
+                                    ? Colors.grey
+                                    : Colors.orange)
+                            .withOpacity(0.4),
+                        blurRadius: 15,
+                        offset: const Offset(0, 6),
                       ),
-                      const SizedBox(width: 8),
                     ],
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          currentUser?.fullName ?? 'Driver',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // User avatar
+                      if (currentUser != null) ...[
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.5),
+                              width: 2,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              currentUser!.firstName.isNotEmpty
+                                  ? currentUser!.firstName[0].toUpperCase()
+                                  : 'D',
+                              style: GoogleFonts.geologica(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: locationService.isOnline
-                                    ? Colors.green
-                                    : Colors.grey,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              locationService.isOnline ? 'Online' : 'Offline',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: locationService.isOnline
-                                    ? Colors.green
-                                    : Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
+                        const SizedBox(width: 14),
                       ],
-                    ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      height: 20,
-                      child: Switch(
-                        value: locationService.isOnline,
-                        onChanged: _approvalStatus == 'approved'
-                            ? (value) async {
-                                await _toggleOnlineStatus(locationService);
-                              }
-                            : null,
-                        activeColor: Colors.green,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            currentUser?.fullName ?? 'Driver',
+                            style: GoogleFonts.geologica(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.white.withOpacity(0.5),
+                                      blurRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                locationService.isOnline
+                                    ? 'ONLINE - Accepting Rides'
+                                    : _approvalStatus == 'approved'
+                                        ? 'OFFLINE - Tap to go online'
+                                        : 'PENDING VERIFICATION',
+                                style: GoogleFonts.geologica(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white.withOpacity(0.9),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 16),
+                      // Toggle icon
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        child: Icon(
+                          locationService.isOnline
+                              ? Icons.power_settings_new
+                              : Icons.power_off,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -462,14 +542,14 @@ class _HomeState extends State<Home> {
             left: 16,
             right: 16,
             child: Container(
-              height: 180,
+              height: 200,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.15),
-                    blurRadius: 12,
+                    blurRadius: 15,
                     offset: const Offset(0, -4),
                   ),
                 ],
@@ -479,49 +559,61 @@ class _HomeState extends State<Home> {
                   // Header with drag handle
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                        horizontal: 20, vertical: 14),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF0066CC),
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF0066CC), Color(0xFF0052A3)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16),
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
                       ),
                     ),
                     child: Row(
                       children: [
                         Container(
-                          width: 32,
+                          width: 36,
                           height: 4,
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.5),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        const Text(
+                        const SizedBox(width: 14),
+                        Text(
                           'Available Rides',
-                          style: TextStyle(
+                          style: GoogleFonts.geologica(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 17,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const Spacer(),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                              horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                           child: Text(
                             '${allRides.length} nearby',
-                            style: TextStyle(
+                            style: GoogleFonts.geologica(
                               color: Colors.white,
                               fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.refresh,
+                              color: Colors.white, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => _loadPendingRides(),
                         ),
                       ],
                     ),
@@ -531,25 +623,40 @@ class _HomeState extends State<Home> {
                   Expanded(
                     child: allRides.isEmpty
                         ? Center(
-                            child: Text(
-                              'No ride requests available',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
-                              ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  locationService.isOnline
+                                      ? Icons.hourglass_empty
+                                      : Icons.wifi_off,
+                                  color: Colors.grey[400],
+                                  size: 32,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  locationService.isOnline
+                                      ? 'Waiting for ride requests...'
+                                      : 'Go online to receive rides',
+                                  style: GoogleFonts.geologica(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
                           )
                         : ListView.builder(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(12),
                             itemCount: allRides.length,
                             itemBuilder: (context, index) {
                               final ride = allRides[index];
                               return Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                padding: const EdgeInsets.all(12),
+                                margin: const EdgeInsets.only(bottom: 10),
+                                padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
                                   color: Colors.grey[50],
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(14),
                                   border: Border.all(color: Colors.grey[200]!),
                                 ),
                                 child: Row(
@@ -560,41 +667,97 @@ class _HomeState extends State<Home> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            'Ride #${ride.id}',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            '${ride.pickupAddress ?? 'Pickup Location'} → ${ride.dropoffAddress ?? 'Dropoff Location'}',
-                                            style: TextStyle(
-                                              color: Colors.grey[600],
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
                                           Row(
                                             children: [
-                                              Icon(Icons.location_on,
-                                                  size: 12,
-                                                  color: Colors.green[600]),
-                                              const SizedBox(width: 4),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFF0066CC)
+                                                      .withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Text(
+                                                  '#${ride.id?.toString().substring(0, 6) ?? 'N/A'}',
+                                                  style: GoogleFonts.geologica(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 12,
+                                                    color:
+                                                        const Color(0xFF0066CC),
+                                                  ),
+                                                ),
+                                              ),
+                                              const Spacer(),
                                               Text(
-                                                '\$${ride.fare?.toStringAsFixed(2) ?? '0.00'} • ${ride.distance?.toStringAsFixed(1) ?? '0.0'} km',
-                                                style: TextStyle(
-                                                  color: Colors.green[600],
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 12,
+                                                '\$${ride.fare?.toStringAsFixed(2) ?? '0.00'}',
+                                                style: GoogleFonts.geologica(
+                                                  color: Colors.green[700],
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
                                                 ),
                                               ),
                                             ],
                                           ),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.circle,
+                                                  size: 8,
+                                                  color: Colors.green[600]),
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: Text(
+                                                  ride.pickupAddress ??
+                                                      'Pickup Location',
+                                                  style: GoogleFonts.geologica(
+                                                    color: Colors.grey[700],
+                                                    fontSize: 12,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.circle,
+                                                  size: 8,
+                                                  color: Colors.red[600]),
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: Text(
+                                                  ride.dropoffAddress ??
+                                                      'Dropoff Location',
+                                                  style: GoogleFonts.geologica(
+                                                    color: Colors.grey[700],
+                                                    fontSize: 12,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            '${ride.distance?.toStringAsFixed(1) ?? '0.0'} km away',
+                                            style: GoogleFonts.geologica(
+                                              color: Colors.grey[500],
+                                              fontSize: 11,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
+
+                                    const SizedBox(width: 12),
 
                                     // Accept button
                                     ElevatedButton(
@@ -607,8 +770,14 @@ class _HomeState extends State<Home> {
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(
                                                   SnackBar(
-                                                      content: Text(
-                                                          'Ride #${ride.id} accepted!')),
+                                                    content: Text(
+                                                      'Ride accepted!',
+                                                      style: GoogleFonts
+                                                          .geologica(),
+                                                    ),
+                                                    backgroundColor:
+                                                        Colors.green,
+                                                  ),
                                                 );
                                                 // Navigate to en-route pickup screen
                                                 Navigator.pushNamed(
@@ -621,8 +790,13 @@ class _HomeState extends State<Home> {
                                                 ScaffoldMessenger.of(context)
                                                     .showSnackBar(
                                                   SnackBar(
-                                                      content: Text(
-                                                          'Failed to accept ride: $e')),
+                                                    content: Text(
+                                                      'Failed to accept ride: $e',
+                                                      style: GoogleFonts
+                                                          .geologica(),
+                                                    ),
+                                                    backgroundColor: Colors.red,
+                                                  ),
                                                 );
                                               }
                                             }
@@ -635,19 +809,17 @@ class _HomeState extends State<Home> {
                                                 : Colors.grey,
                                         foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 16, vertical: 8),
-                                        textStyle: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500),
+                                            horizontal: 20, vertical: 12),
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
-                                              BorderRadius.circular(20),
+                                              BorderRadius.circular(12),
                                         ),
+                                        elevation: 2,
                                       ),
                                       child: rideProvider.isLoading
                                           ? const SizedBox(
-                                              width: 16,
-                                              height: 16,
+                                              width: 18,
+                                              height: 18,
                                               child: CircularProgressIndicator(
                                                 strokeWidth: 2,
                                                 valueColor:
@@ -655,7 +827,12 @@ class _HomeState extends State<Home> {
                                                         Color>(Colors.white),
                                               ),
                                             )
-                                          : const Text('Accept'),
+                                          : Text(
+                                              'Accept',
+                                              style: GoogleFonts.geologica(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
                                     ),
                                   ],
                                 ),

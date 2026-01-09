@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:typed_data';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -254,32 +255,64 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
     }
   }
 
+  /// Normalize phone number to E.164 format with + prefix
+  String _normalizePhoneNumber(String phone) {
+    String cleaned = phone.replaceAll(RegExp(r'[\s\-()]'), '');
+
+    // Already has + prefix
+    if (cleaned.startsWith('+')) {
+      return cleaned;
+    }
+
+    // Kenyan format without + (e.g., 254XXXXXXXXX)
+    if (cleaned.startsWith('254') && cleaned.length >= 12) {
+      return '+$cleaned';
+    }
+
+    // Kenyan local format (07XXXXXXXX or 7XXXXXXXX)
+    if (RegExp(r'^0?7\d{8}$').hasMatch(cleaned)) {
+      return '+254${cleaned.substring(cleaned.length - 9)}';
+    }
+
+    // US format (10 digits or 1 + 10 digits)
+    if (RegExp(r'^1?\d{10}$').hasMatch(cleaned)) {
+      final digits = cleaned.substring(cleaned.length - 10);
+      return '+1$digits';
+    }
+
+    // Default: add + prefix
+    return '+$cleaned';
+  }
+
   Future<void> _submitRegistration() async {
     setState(() => _isLoading = true);
 
     try {
-      final provider = context.read<AppProvider>();
+      // Normalize phone number to E.164 format
+      final normalizedPhone =
+          _normalizePhoneNumber(_phoneController.text.trim());
 
       // First, register/update the user
       final userData = {
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
         'email': _emailController.text.trim(),
-        'phoneNumber': _phoneController.text.trim(),
+        'phoneNumber': normalizedPhone,
         'role': 'driver',
       };
 
       print('📝 Starting driver registration flow...');
       print('📝 User data: $userData');
+      print('📝 Original phone: ${_phoneController.text.trim()}');
+      print('📝 Normalized phone: $normalizedPhone');
 
       // Register user first if not already done
       final userResponse = await ApiService.registerUser(userData);
       print('📝 User registration response: $userResponse');
 
-      // Request OTP for verification
-      print('📱 Requesting OTP for phone: ${_phoneController.text.trim()}');
-      final otpResponse =
-          await ApiService.requestOtp(_phoneController.text.trim());
+      // Request OTP for verification using normalized phone number
+      print('📱 Requesting OTP for phone: $normalizedPhone');
+      final otpResponse = await ApiService.requestOtp(normalizedPhone);
       print('📱 OTP response: $otpResponse');
 
       if (otpResponse['success'] != true &&
@@ -295,7 +328,7 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
         context,
         '/driver-otp-verify',
         arguments: {
-          'phoneNumber': _phoneController.text.trim(),
+          'phoneNumber': normalizedPhone,
           'driverData': {
             'firstName': _firstNameController.text.trim(),
             'middleName': _middleNameController.text.trim(),
@@ -361,10 +394,17 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text(_stepTitles[_currentStep]),
+        title: Text(
+          _stepTitles[_currentStep],
+          style: GoogleFonts.geologica(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         backgroundColor: const Color(0xFF0066CC),
         foregroundColor: Colors.white,
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: _previousStep,
@@ -374,27 +414,52 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
         children: [
           // Progress Indicator
           Container(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: List.generate(6, (index) {
-                return Expanded(
-                  child: Container(
-                    height: 4,
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    decoration: BoxDecoration(
-                      color: index <= _currentStep
-                          ? const Color(0xFF0066CC)
-                          : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: List.generate(6, (index) {
+                    return Expanded(
+                      child: Container(
+                        height: 6,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          gradient: index <= _currentStep
+                              ? const LinearGradient(
+                                  colors: [
+                                    Color(0xFF0066CC),
+                                    Color(0xFF0052A3)
+                                  ],
+                                )
+                              : null,
+                          color: index > _currentStep ? Colors.grey[200] : null,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Step ${_currentStep + 1} of 6',
+                  style: GoogleFonts.geologica(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
                   ),
-                );
-              }),
+                ),
+              ],
             ),
           ),
-          Text('Step ${_currentStep + 1} of 6',
-              style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 8),
 
           // Page Content
           Expanded(
@@ -414,28 +479,57 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
 
           // Bottom Navigation
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
             child: _currentStep < 5
                 ? ElevatedButton(
                     onPressed: _nextStep,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0066CC),
-                      minimumSize: const Size.fromHeight(50),
+                      minimumSize: const Size.fromHeight(56),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 2,
                     ),
-                    child: const Text('Continue',
-                        style: TextStyle(color: Colors.white, fontSize: 16)),
+                    child: Text(
+                      'Continue',
+                      style: GoogleFonts.geologica(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   )
                 : ElevatedButton(
                     onPressed: _isLoading ? null : _submitRegistration,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0066CC),
-                      minimumSize: const Size.fromHeight(50),
+                      minimumSize: const Size.fromHeight(56),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 2,
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Submit & Verify Phone',
-                            style:
-                                TextStyle(color: Colors.white, fontSize: 16)),
+                        : Text(
+                            'Submit & Verify Phone',
+                            style: GoogleFonts.geologica(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
           ),
         ],
@@ -445,16 +539,20 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
 
   Widget _buildPersonalInfoStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Form(
         key: _personalInfoKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-                'Your legal name must match your Driver\'s License exactly',
-                style: TextStyle(color: Colors.grey, fontSize: 12)),
-            const SizedBox(height: 16),
+            Text(
+              'Your legal name must match your Driver\'s License exactly',
+              style: GoogleFonts.geologica(
+                color: Colors.grey[600],
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 20),
 
             // Profile Photo
             Center(
@@ -462,25 +560,51 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
                 onTap: () => _pickImage('profile'),
                 child: Stack(
                   children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.grey[200],
-                      backgroundImage: _profilePhotoBytes != null
-                          ? MemoryImage(_profilePhotoBytes!)
-                          : null,
-                      child: _profilePhotoBytes == null
-                          ? const Icon(Icons.person,
-                              size: 50, color: Colors.grey)
-                          : null,
+                    Container(
+                      width: 110,
+                      height: 110,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey[200],
+                        border: Border.all(
+                          color: _profilePhotoBytes != null
+                              ? const Color(0xFF0066CC)
+                              : Colors.grey[300]!,
+                          width: 3,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: _profilePhotoBytes != null
+                          ? ClipOval(
+                              child: Image.memory(
+                                _profilePhotoBytes!,
+                                fit: BoxFit.cover,
+                                width: 110,
+                                height: 110,
+                              ),
+                            )
+                          : const Icon(Icons.person,
+                              size: 50, color: Colors.grey),
                     ),
                     Positioned(
                       bottom: 0,
                       right: 0,
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(8),
                         decoration: const BoxDecoration(
                           color: Color(0xFF0066CC),
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 4,
+                            ),
+                          ],
                         ),
                         child: const Icon(Icons.camera_alt,
                             size: 20, color: Colors.white),
@@ -490,49 +614,50 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
                 ),
               ),
             ),
-            const Center(
-                child: Text('Profile Photo *',
-                    style: TextStyle(fontSize: 12, color: Colors.grey))),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                'Profile Photo *',
+                style: GoogleFonts.geologica(
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+            const SizedBox(height: 28),
 
-            TextFormField(
+            _buildTextField(
               controller: _firstNameController,
-              decoration: const InputDecoration(
-                  labelText: 'First Name *', border: OutlineInputBorder()),
+              label: 'First Name *',
               validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
               textCapitalization: TextCapitalization.words,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-            TextFormField(
+            _buildTextField(
               controller: _middleNameController,
-              decoration: const InputDecoration(
-                  labelText: 'Middle Name (Optional)',
-                  border: OutlineInputBorder()),
+              label: 'Middle Name (Optional)',
               textCapitalization: TextCapitalization.words,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-            TextFormField(
+            _buildTextField(
               controller: _lastNameController,
-              decoration: const InputDecoration(
-                  labelText: 'Last Name *', border: OutlineInputBorder()),
+              label: 'Last Name *',
               validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
               textCapitalization: TextCapitalization.words,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-            TextFormField(
+            _buildTextField(
               controller: _dateOfBirthController,
+              label: 'Date of Birth *',
               readOnly: true,
               onTap: () => _selectDate(
                   _dateOfBirthController, (d) => _selectedDateOfBirth = d),
-              decoration: const InputDecoration(
-                labelText: 'Date of Birth *',
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.calendar_today),
-                hintText: 'MM/DD/YYYY',
-              ),
+              suffixIcon:
+                  const Icon(Icons.calendar_today, color: Color(0xFF0066CC)),
+              hintText: 'MM/DD/YYYY',
               validator: (v) {
                 if (v?.isEmpty ?? true) return 'Required';
                 if (_selectedDateOfBirth != null) {
@@ -544,38 +669,31 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
                 return null;
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-            TextFormField(
+            _buildTextField(
               controller: _ssnController,
-              decoration: const InputDecoration(
-                labelText: 'Social Security Number *',
-                border: OutlineInputBorder(),
-                hintText: 'XXX-XX-XXXX',
-              ),
+              label: 'Social Security Number *',
+              hintText: 'XXX-XX-XXXX',
               keyboardType: TextInputType.number,
               obscureText: true,
               validator: (v) =>
                   v?.isEmpty ?? true ? 'Required for background check' : null,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-            TextFormField(
+            _buildTextField(
               controller: _phoneController,
-              decoration: const InputDecoration(
-                labelText: 'Phone Number *',
-                border: OutlineInputBorder(),
-                hintText: '+1234567890',
-              ),
+              label: 'Phone Number *',
+              hintText: '+1234567890',
               keyboardType: TextInputType.phone,
               validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-            TextFormField(
+            _buildTextField(
               controller: _emailController,
-              decoration: const InputDecoration(
-                  labelText: 'Email *', border: OutlineInputBorder()),
+              label: 'Email *',
               keyboardType: TextInputType.emailAddress,
               validator: (v) {
                 if (v?.isEmpty ?? true) return 'Required';
@@ -589,65 +707,138 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
     );
   }
 
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    String? hintText,
+    TextInputType? keyboardType,
+    bool readOnly = false,
+    bool obscureText = false,
+    VoidCallback? onTap,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    int? maxLength,
+  }) {
+    return TextFormField(
+      controller: controller,
+      readOnly: readOnly,
+      onTap: onTap,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      maxLength: maxLength,
+      textCapitalization: textCapitalization,
+      style: GoogleFonts.geologica(fontSize: 16),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.geologica(
+          color: Colors.grey[600],
+          fontSize: 15,
+        ),
+        hintText: hintText,
+        hintStyle: GoogleFonts.geologica(
+          color: Colors.grey[400],
+          fontSize: 15,
+        ),
+        suffixIcon: suffixIcon,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF0066CC), width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+      validator: validator,
+    );
+  }
+
   Widget _buildAddressStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Form(
         key: _addressKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Residential Address',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Residential Address',
+              style: GoogleFonts.geologica(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 8),
-            const Text(
-                'Must be a physical US address (P.O. Boxes are not accepted)',
-                style: TextStyle(color: Colors.grey, fontSize: 12)),
-            const SizedBox(height: 16),
-            TextFormField(
+            Text(
+              'Must be a physical US address (P.O. Boxes are not accepted)',
+              style: GoogleFonts.geologica(
+                color: Colors.grey[600],
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildTextField(
               controller: _streetAddressController,
-              decoration: const InputDecoration(
-                  labelText: 'Street Address *', border: OutlineInputBorder()),
+              label: 'Street Address *',
               validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
             ),
-            const SizedBox(height: 12),
-            TextFormField(
+            const SizedBox(height: 16),
+            _buildTextField(
               controller: _cityController,
-              decoration: const InputDecoration(
-                  labelText: 'City *', border: OutlineInputBorder()),
+              label: 'City *',
               validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: _buildTextField(
                     controller: _stateController,
-                    decoration: const InputDecoration(
-                        labelText: 'State *', border: OutlineInputBorder()),
+                    label: 'State *',
                     validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
-                  child: TextFormField(
+                  child: _buildTextField(
                     controller: _zipCodeController,
-                    decoration: const InputDecoration(
-                        labelText: 'ZIP Code *', border: OutlineInputBorder()),
+                    label: 'ZIP Code *',
                     keyboardType: TextInputType.number,
                     validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            const Text('Proof of Residency',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 32),
+            Text(
+              'Proof of Residency',
+              style: GoogleFonts.geologica(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 8),
-            const Text(
-                'If your license address is different, upload a utility bill or bank statement',
-                style: TextStyle(color: Colors.grey, fontSize: 12)),
-            const SizedBox(height: 12),
+            Text(
+              'If your license address is different, upload a utility bill or bank statement',
+              style: GoogleFonts.geologica(
+                color: Colors.grey[600],
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 16),
             _buildImageUploadBox(
               title: 'Proof of Residency (Optional)',
               imageBytes: _proofOfResidencyBytes,
@@ -661,43 +852,48 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
 
   Widget _buildLicenseStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Form(
         key: _licenseKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Driver\'s License',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Driver\'s License',
+              style: GoogleFonts.geologica(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 8),
-            const Text(
-                'Must be a valid in-state license for where you intend to drive',
-                style: TextStyle(color: Colors.grey, fontSize: 12)),
-            const SizedBox(height: 16),
-            TextFormField(
+            Text(
+              'Must be a valid in-state license for where you intend to drive',
+              style: GoogleFonts.geologica(
+                color: Colors.grey[600],
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildTextField(
               controller: _licenseNumberController,
-              decoration: const InputDecoration(
-                  labelText: 'License Number *', border: OutlineInputBorder()),
+              label: 'License Number *',
               validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
             ),
-            const SizedBox(height: 12),
-            TextFormField(
+            const SizedBox(height: 16),
+            _buildTextField(
               controller: _licenseStateController,
-              decoration: const InputDecoration(
-                  labelText: 'Issuing State *', border: OutlineInputBorder()),
+              label: 'Issuing State *',
               validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
             ),
-            const SizedBox(height: 12),
-            TextFormField(
+            const SizedBox(height: 16),
+            _buildTextField(
               controller: _licenseExpiryController,
+              label: 'Expiration Date *',
               readOnly: true,
               onTap: () => _selectDate(
                   _licenseExpiryController, (d) => _selectedLicenseExpiry = d),
-              decoration: const InputDecoration(
-                labelText: 'Expiration Date *',
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.calendar_today),
-              ),
+              suffixIcon:
+                  const Icon(Icons.calendar_today, color: Color(0xFF0066CC)),
               validator: (v) {
                 if (v?.isEmpty ?? true) return 'Required';
                 if (_selectedLicenseExpiry != null &&
@@ -707,10 +903,15 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
                 return null;
               },
             ),
-            const SizedBox(height: 24),
-            const Text('Upload License Photos',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
+            const SizedBox(height: 32),
+            Text(
+              'Upload License Photos',
+              style: GoogleFonts.geologica(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -718,16 +919,16 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
                     title: 'Front *',
                     imageBytes: _licenseFrontBytes,
                     onTap: () => _pickImage('licenseFront'),
-                    height: 120,
+                    height: 140,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
                   child: _buildImageUploadBox(
                     title: 'Back *',
                     imageBytes: _licenseBackBytes,
                     onTap: () => _pickImage('licenseBack'),
-                    height: 120,
+                    height: 140,
                   ),
                 ),
               ],
@@ -740,25 +941,32 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
 
   Widget _buildVehicleStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Form(
         key: _vehicleKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Vehicle Information',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text('Car must be 15 years old or newer',
-                style: TextStyle(color: Colors.grey, fontSize: 12)),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _vinController,
-              decoration: const InputDecoration(
-                labelText: 'VIN (Vehicle Identification Number) *',
-                border: OutlineInputBorder(),
-                hintText: '17 characters',
+            Text(
+              'Vehicle Information',
+              style: GoogleFonts.geologica(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Car must be 15 years old or newer',
+              style: GoogleFonts.geologica(
+                color: Colors.grey[600],
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildTextField(
+              controller: _vinController,
+              label: 'VIN (Vehicle Identification Number) *',
+              hintText: '17 characters',
               maxLength: 17,
               textCapitalization: TextCapitalization.characters,
               validator: (v) {
@@ -767,42 +975,36 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
                 return null;
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: _buildTextField(
                     controller: _makeController,
-                    decoration: const InputDecoration(
-                        labelText: 'Make *',
-                        border: OutlineInputBorder(),
-                        hintText: 'Toyota'),
+                    label: 'Make *',
+                    hintText: 'Toyota',
                     validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
-                  child: TextFormField(
+                  child: _buildTextField(
                     controller: _modelController,
-                    decoration: const InputDecoration(
-                        labelText: 'Model *',
-                        border: OutlineInputBorder(),
-                        hintText: 'Camry'),
+                    label: 'Model *',
+                    hintText: 'Camry',
                     validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: _buildTextField(
                     controller: _yearController,
-                    decoration: const InputDecoration(
-                        labelText: 'Year *',
-                        border: OutlineInputBorder(),
-                        hintText: '2022'),
+                    label: 'Year *',
+                    hintText: '2022',
                     keyboardType: TextInputType.number,
                     validator: (v) {
                       if (v?.isEmpty ?? true) return 'Required';
@@ -814,62 +1016,91 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
                     },
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
-                  child: TextFormField(
+                  child: _buildTextField(
                     controller: _colorController,
-                    decoration: const InputDecoration(
-                        labelText: 'Color *',
-                        border: OutlineInputBorder(),
-                        hintText: 'Silver'),
+                    label: 'Color *',
+                    hintText: 'Silver',
                     validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            TextFormField(
+            const SizedBox(height: 16),
+            _buildTextField(
               controller: _licensePlateController,
-              decoration: const InputDecoration(
-                  labelText: 'License Plate Number *',
-                  border: OutlineInputBorder()),
+              label: 'License Plate Number *',
               textCapitalization: TextCapitalization.characters,
               validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: _doors,
-                    decoration: const InputDecoration(
-                        labelText: 'Doors', border: OutlineInputBorder()),
-                    items: [2, 4, 5]
-                        .map((d) =>
-                            DropdownMenuItem(value: d, child: Text('$d')))
-                        .toList(),
-                    onChanged: (v) => setState(() => _doors = v!),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _doors,
+                        isExpanded: true,
+                        items: [2, 4, 5]
+                            .map((d) => DropdownMenuItem(
+                                  value: d,
+                                  child: Text(
+                                    '$d Doors',
+                                    style: GoogleFonts.geologica(),
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: (v) => setState(() => _doors = v!),
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: _seats,
-                    decoration: const InputDecoration(
-                        labelText: 'Seats', border: OutlineInputBorder()),
-                    items: [2, 4, 5, 7, 8]
-                        .map((s) =>
-                            DropdownMenuItem(value: s, child: Text('$s')))
-                        .toList(),
-                    onChanged: (v) => setState(() => _seats = v!),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _seats,
+                        isExpanded: true,
+                        items: [2, 4, 5, 7, 8]
+                            .map((s) => DropdownMenuItem(
+                                  value: s,
+                                  child: Text(
+                                    '$s Seats',
+                                    style: GoogleFonts.geologica(),
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: (v) => setState(() => _seats = v!),
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            const Text('Vehicle Registration',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            const SizedBox(height: 32),
+            Text(
+              'Vehicle Registration',
+              style: GoogleFonts.geologica(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
             _buildImageUploadBox(
               title: 'Upload Registration Photo',
               imageBytes: _registrationPhotoBytes,
@@ -883,43 +1114,64 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
 
   Widget _buildInsuranceStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Form(
         key: _insuranceKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Insurance Information',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Insurance Information',
+              style: GoogleFonts.geologica(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 8),
-            const Text('Must have rideshare endorsement or commercial coverage',
-                style: TextStyle(color: Colors.red, fontSize: 12)),
-            const SizedBox(height: 16),
-            TextFormField(
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber, color: Colors.red[700], size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Must have rideshare endorsement or commercial coverage',
+                      style: GoogleFonts.geologica(
+                        color: Colors.red[700],
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildTextField(
               controller: _insuranceProviderController,
-              decoration: const InputDecoration(
-                  labelText: 'Insurance Provider *',
-                  border: OutlineInputBorder()),
+              label: 'Insurance Provider *',
               validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
             ),
-            const SizedBox(height: 12),
-            TextFormField(
+            const SizedBox(height: 16),
+            _buildTextField(
               controller: _insurancePolicyController,
-              decoration: const InputDecoration(
-                  labelText: 'Policy Number *', border: OutlineInputBorder()),
+              label: 'Policy Number *',
               validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
             ),
-            const SizedBox(height: 12),
-            TextFormField(
+            const SizedBox(height: 16),
+            _buildTextField(
               controller: _insuranceExpiryController,
+              label: 'Expiration Date *',
               readOnly: true,
               onTap: () => _selectDate(_insuranceExpiryController,
                   (d) => _selectedInsuranceExpiry = d),
-              decoration: const InputDecoration(
-                labelText: 'Expiration Date *',
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.calendar_today),
-              ),
+              suffixIcon:
+                  const Icon(Icons.calendar_today, color: Color(0xFF0066CC)),
               validator: (v) {
                 if (v?.isEmpty ?? true) return 'Required';
                 if (_selectedInsuranceExpiry != null &&
@@ -929,46 +1181,90 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
                 return null;
               },
             ),
-            const SizedBox(height: 12),
-            CheckboxListTile(
-              title: const Text('I have Rideshare Endorsement'),
-              subtitle: const Text('Required for rideshare drivers',
-                  style: TextStyle(fontSize: 12)),
-              value: _hasRideshareEndorsement,
-              onChanged: (v) => setState(() => _hasRideshareEndorsement = v!),
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
-            ),
             const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: CheckboxListTile(
+                title: Text(
+                  'I have Rideshare Endorsement',
+                  style: GoogleFonts.geologica(fontWeight: FontWeight.w500),
+                ),
+                subtitle: Text(
+                  'Required for rideshare drivers',
+                  style: GoogleFonts.geologica(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                value: _hasRideshareEndorsement,
+                onChanged: (v) => setState(() => _hasRideshareEndorsement = v!),
+                controlAffinity: ListTileControlAffinity.leading,
+                activeColor: const Color(0xFF0066CC),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
             _buildImageUploadBox(
               title: 'Upload Insurance Card *',
               imageBytes: _insurancePhotoBytes,
               onTap: () => _pickImage('insurance'),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             const Divider(),
-            const SizedBox(height: 16),
-            const Text('Background Check Authorization',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'By checking the box below, I authorize KVA to conduct a background check including criminal history, driving record, and identity verification. I understand this is required for driver approval.',
-                style: TextStyle(fontSize: 12),
+            const SizedBox(height: 20),
+            Text(
+              'Background Check Authorization',
+              style: GoogleFonts.geologica(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 8),
-            CheckboxListTile(
-              title: const Text('I agree to the background check *'),
-              value: _backgroundCheckConsent,
-              onChanged: (v) => setState(() => _backgroundCheckConsent = v!),
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'By checking the box below, I authorize KVA to conduct a background check including criminal history, driving record, and identity verification. I understand this is required for driver approval.',
+                style: GoogleFonts.geologica(
+                  fontSize: 13,
+                  color: Colors.grey[700],
+                  height: 1.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _backgroundCheckConsent
+                      ? const Color(0xFF0066CC)
+                      : Colors.grey[300]!,
+                ),
+              ),
+              child: CheckboxListTile(
+                title: Text(
+                  'I agree to the background check *',
+                  style: GoogleFonts.geologica(fontWeight: FontWeight.w500),
+                ),
+                value: _backgroundCheckConsent,
+                onChanged: (v) => setState(() => _backgroundCheckConsent = v!),
+                controlAffinity: ListTileControlAffinity.leading,
+                activeColor: const Color(0xFF0066CC),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ],
         ),
@@ -978,16 +1274,26 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
 
   Widget _buildReviewStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Review Your Information',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            'Review Your Information',
+            style: GoogleFonts.geologica(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text('Please review all details before submitting',
-              style: TextStyle(color: Colors.grey, fontSize: 12)),
-          const SizedBox(height: 16),
+          Text(
+            'Please review all details before submitting',
+            style: GoogleFonts.geologica(
+              color: Colors.grey[600],
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 24),
           _buildReviewSection('Personal Information', [
             'Name: ${_firstNameController.text} ${_middleNameController.text} ${_lastNameController.text}',
             'DOB: ${_dateOfBirthController.text}',
@@ -1015,22 +1321,26 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
             'Expires: ${_insuranceExpiryController.text}',
             'Rideshare Endorsement: ${_hasRideshareEndorsement ? "Yes" : "No"}',
           ]),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue),
+              color: const Color(0xFF0066CC).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border:
+                  Border.all(color: const Color(0xFF0066CC).withOpacity(0.3)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.blue),
-                SizedBox(width: 12),
+                const Icon(Icons.info_outline, color: Color(0xFF0066CC)),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'After submitting, you will verify your phone number via OTP. Your application will then be reviewed by our team.',
-                    style: TextStyle(fontSize: 12),
+                    style: GoogleFonts.geologica(
+                      fontSize: 13,
+                      color: const Color(0xFF0066CC),
+                    ),
                   ),
                 ),
               ],
@@ -1044,19 +1354,51 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
   Widget _buildReviewSection(String title, List<String> items) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        border: Border.all(color: Colors.grey[200]!),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const Divider(),
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0066CC),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: GoogleFonts.geologica(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 20),
           ...items.map((item) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Text(item, style: const TextStyle(fontSize: 14)),
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Text(
+                  item,
+                  style: GoogleFonts.geologica(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                  ),
+                ),
               )),
         ],
       ),
@@ -1067,7 +1409,7 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
     required String title,
     required Uint8List? imageBytes,
     required VoidCallback onTap,
-    double height = 150,
+    double height = 160,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -1076,29 +1418,37 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
         width: double.infinity,
         decoration: BoxDecoration(
           border: Border.all(
-              color: imageBytes != null ? Colors.green : Colors.grey),
-          borderRadius: BorderRadius.circular(8),
-          color: imageBytes != null ? Colors.green[50] : null,
+            color: imageBytes != null ? Colors.green : Colors.grey[300]!,
+            width: imageBytes != null ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          color: imageBytes != null ? Colors.green[50] : Colors.grey[50],
         ),
         child: imageBytes != null
             ? Stack(
                 fit: StackFit.expand,
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(11),
                     child: Image.memory(imageBytes, fit: BoxFit.cover),
                   ),
                   Positioned(
-                    top: 8,
-                    right: 8,
+                    top: 10,
+                    right: 10,
                     child: Container(
-                      padding: const EdgeInsets.all(4),
+                      padding: const EdgeInsets.all(6),
                       decoration: const BoxDecoration(
                         color: Colors.green,
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                          ),
+                        ],
                       ),
                       child: const Icon(Icons.check,
-                          color: Colors.white, size: 16),
+                          color: Colors.white, size: 18),
                     ),
                   ),
                 ],
@@ -1106,9 +1456,35 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.cloud_upload, size: 40, color: Colors.grey),
-                  const SizedBox(height: 8),
-                  Text(title, style: const TextStyle(color: Colors.grey)),
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.cloud_upload_outlined,
+                      size: 30,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    title,
+                    style: GoogleFonts.geologica(
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tap to upload',
+                    style: GoogleFonts.geologica(
+                      color: Colors.grey[400],
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
       ),

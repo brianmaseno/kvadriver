@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../data/providers/ride_provider.dart';
 import '../../data/models/models.dart';
 import '../../widgets/rating_popup.dart';
@@ -20,7 +21,8 @@ class _RideCompleteScreenState extends State<RideCompleteScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       if (args != null && args['rideId'] != null) {
         _rideId = args['rideId'];
         _loadRideDetails();
@@ -75,30 +77,30 @@ class _RideCompleteScreenState extends State<RideCompleteScreen> {
                   color: Colors.green,
                 ),
               ),
-              
+
               const SizedBox(height: 32),
-              
-              const Text(
+
+              Text(
                 'Trip Completed!',
-                style: TextStyle(
+                style: GoogleFonts.geologica(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
-              const Text(
+
+              Text(
                 'You have successfully completed the trip.',
-                style: TextStyle(
+                style: GoogleFonts.geologica(
                   fontSize: 16,
                   color: Colors.grey,
                 ),
                 textAlign: TextAlign.center,
               ),
-              
+
               const SizedBox(height: 40),
-              
+
               // Trip summary
               Container(
                 padding: const EdgeInsets.all(20),
@@ -111,10 +113,11 @@ class _RideCompleteScreenState extends State<RideCompleteScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Trip Fare'),
+                        Text('Trip Fare', style: GoogleFonts.geologica()),
                         Text(
                           '\$${_ride?.finalFare?.toStringAsFixed(2) ?? _ride?.fare?.toStringAsFixed(2) ?? '24.50'}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: GoogleFonts.geologica(
+                              fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -122,35 +125,38 @@ class _RideCompleteScreenState extends State<RideCompleteScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Distance'),
-                        Text('${_ride?.distance ?? '12.5'} km'),
+                        Text('Distance', style: GoogleFonts.geologica()),
+                        Text('${_ride?.distance ?? '12.5'} km',
+                            style: GoogleFonts.geologica()),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Duration'),
-                        const Text('25 min'), // TODO: Calculate actual duration
+                        Text('Duration', style: GoogleFonts.geologica()),
+                        Text('25 min',
+                            style: GoogleFonts
+                                .geologica()), // TODO: Calculate actual duration
                       ],
                     ),
                     const Divider(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Your Earnings',
-                          style: TextStyle(
+                          style: GoogleFonts.geologica(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
-                          '\$${(_ride?.finalFare ?? _ride?.fare ?? 24.50) * 0.8}', // Assuming 80% goes to driver
-                          style: const TextStyle(
+                          '\$${((_ride?.finalFare ?? _ride?.fare ?? 24.50) * 0.8).toStringAsFixed(2)}', // Assuming 80% goes to driver
+                          style: GoogleFonts.geologica(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF0066CC),
+                            color: const Color(0xFF0066CC),
                           ),
                         ),
                       ],
@@ -158,9 +164,9 @@ class _RideCompleteScreenState extends State<RideCompleteScreen> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 40),
-              
+
               // Rate Passenger button
               if (!_hasRated)
                 SizedBox(
@@ -168,13 +174,14 @@ class _RideCompleteScreenState extends State<RideCompleteScreen> {
                   height: 56,
                   child: OutlinedButton.icon(
                     onPressed: _ratePassenger,
-                    icon: const Icon(Icons.star_outline, color: Color(0xFF0066CC)),
-                    label: const Text(
+                    icon: const Icon(Icons.star_outline,
+                        color: Color(0xFF0066CC)),
+                    label: Text(
                       'Rate Passenger',
-                      style: TextStyle(
+                      style: GoogleFonts.geologica(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF0066CC),
+                        color: const Color(0xFF0066CC),
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -185,9 +192,9 @@ class _RideCompleteScreenState extends State<RideCompleteScreen> {
                     ),
                   ),
                 ),
-              
+
               if (!_hasRated) const SizedBox(height: 16),
-              
+
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -205,9 +212,9 @@ class _RideCompleteScreenState extends State<RideCompleteScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Continue Driving',
-                    style: TextStyle(
+                    style: GoogleFonts.geologica(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,

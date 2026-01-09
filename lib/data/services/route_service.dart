@@ -43,7 +43,7 @@ class RouteService extends ChangeNotifier {
         final routes = response['routes'] as List;
         if (routes.isNotEmpty) {
           final route = routes[0];
-          
+
           // Parse geometry (GeoJSON coordinates)
           final geometry = route['geometry'];
           if (geometry != null && geometry['coordinates'] != null) {
@@ -54,8 +54,10 @@ class RouteService extends ChangeNotifier {
           }
 
           // Parse distance and duration
-          _totalDistanceKm = (route['distance'] ?? 0) / 1000; // Convert meters to km
-          _estimatedDurationMinutes = (route['duration'] ?? 0) / 60; // Convert seconds to minutes
+          _totalDistanceKm =
+              (route['distance'] ?? 0) / 1000; // Convert meters to km
+          _estimatedDurationMinutes =
+              (route['duration'] ?? 0) / 60; // Convert seconds to minutes
 
           // Parse steps for turn-by-turn navigation
           _steps = [];
@@ -128,7 +130,7 @@ class RouteService extends ChangeNotifier {
   String get formattedDuration {
     final hours = _estimatedDurationMinutes ~/ 60;
     final minutes = _estimatedDurationMinutes.round() % 60;
-    
+
     if (hours > 0) {
       return '${hours}h ${minutes}min';
     }

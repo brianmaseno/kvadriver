@@ -21,9 +21,38 @@ class AppProvider extends ChangeNotifier {
   Map<String, dynamic>? get currentUserData => _currentUserData;
   bool get isInitialized => _initialized;
 
+  /// Normalize phone number to E.164 format with + prefix
+  String _normalizePhoneNumber(String phone) {
+    String cleaned = phone.replaceAll(RegExp(r'[\s\-()]'), '');
+
+    // Already has + prefix
+    if (cleaned.startsWith('+')) {
+      return cleaned;
+    }
+
+    // Kenyan format without + (e.g., 254XXXXXXXXX)
+    if (cleaned.startsWith('254') && cleaned.length >= 12) {
+      return '+$cleaned';
+    }
+
+    // Kenyan local format (07XXXXXXXX or 7XXXXXXXX)
+    if (RegExp(r'^0?7\d{8}$').hasMatch(cleaned)) {
+      return '+254${cleaned.substring(cleaned.length - 9)}';
+    }
+
+    // US format (10 digits or 1 + 10 digits)
+    if (RegExp(r'^1?\d{10}$').hasMatch(cleaned)) {
+      final digits = cleaned.substring(cleaned.length - 10);
+      return '+1$digits';
+    }
+
+    // Default: add + prefix
+    return '+$cleaned';
+  }
+
   // Set current phone number (used during signup flow)
   void setCurrentPhone(String phone) {
-    _currentPhone = phone;
+    _currentPhone = _normalizePhoneNumber(phone);
     notifyListeners();
   }
 
@@ -65,11 +94,14 @@ class AppProvider extends ChangeNotifier {
   // Request OTP for login
   Future<bool> requestOtp(String phone) async {
     try {
-      final response = await ApiService.requestOtp(phone);
+      final normalizedPhone = _normalizePhoneNumber(phone);
+      print('📱 Requesting OTP for phone: $normalizedPhone (original: $phone)');
+
+      final response = await ApiService.requestOtp(normalizedPhone);
       print('📱 OTP Request Response: $response');
 
       if (response['success'] == true) {
-        _currentPhone = phone;
+        _currentPhone = normalizedPhone;
         return true;
       }
 
@@ -91,7 +123,10 @@ class AppProvider extends ChangeNotifier {
   // Verify OTP and login
   Future<bool> verifyOtp(String phone, String otp) async {
     try {
-      final response = await ApiService.verifyOtp(phone, otp);
+      final normalizedPhone = _normalizePhoneNumber(phone);
+      print('🔐 Verifying OTP for phone: $normalizedPhone');
+
+      final response = await ApiService.verifyOtp(normalizedPhone, otp);
       if (response['accessToken'] != null) {
         await ApiService.setAuthToken(response['accessToken']);
 
@@ -102,14 +137,14 @@ class AppProvider extends ChangeNotifier {
         );
 
         _isAuthenticated = true;
-        _currentPhone = phone;
+        _currentPhone = normalizedPhone;
         _currentUserId = response['user']?['id'];
         _currentUserData = response['user'];
 
         final prefs = await SharedPreferences.getInstance();
         if (_currentUserId != null)
           await prefs.setInt('user_id', _currentUserId!);
-        await prefs.setString('user_phone', phone);
+        await prefs.setString('user_phone', normalizedPhone);
 
         // Save user data
         if (_currentUserData != null) {
@@ -138,8 +173,10 @@ class AppProvider extends ChangeNotifier {
   Future<bool> registerUser(
       String name, String email, String phone, String city) async {
     try {
+      final normalizedPhone = _normalizePhoneNumber(phone);
       print('👤 AppProvider: Starting user registration');
-      print('👤 Name: $name, Email: $email, Phone: $phone, City: $city');
+      print(
+          '👤 Name: $name, Email: $email, Phone: $normalizedPhone (original: $phone), City: $city');
 
       final nameParts = name.trim().split(' ');
       String firstName = nameParts.isNotEmpty ? nameParts.first : 'User';
@@ -149,7 +186,7 @@ class AppProvider extends ChangeNotifier {
         'firstName': firstName,
         'lastName': lastName,
         'email': email,
-        'phoneNumber': phone,
+        'phoneNumber': normalizedPhone,
         'role': 'driver',
       };
 

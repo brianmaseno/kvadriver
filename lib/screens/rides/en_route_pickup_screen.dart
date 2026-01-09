@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart' as loc;
+import 'package:google_fonts/google_fonts.dart';
 import '../../data/providers/ride_provider.dart';
 import '../../data/models/models.dart';
 import '../../data/services/chat_call_service.dart';
@@ -38,7 +39,8 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       if (args != null && args['rideId'] != null) {
         _rideId = args['rideId'];
         _loadRideDetails();
@@ -70,7 +72,8 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
       // Get initial location
       final locationData = await _location.getLocation();
       setState(() {
-        _currentLocation = LatLng(locationData.latitude!, locationData.longitude!);
+        _currentLocation =
+            LatLng(locationData.latitude!, locationData.longitude!);
       });
 
       // Calculate route if we have pickup location
@@ -83,7 +86,8 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
         try {
           final locationData = await _location.getLocation();
           setState(() {
-            _currentLocation = LatLng(locationData.latitude!, locationData.longitude!);
+            _currentLocation =
+                LatLng(locationData.latitude!, locationData.longitude!);
           });
 
           // Update driver location to server
@@ -108,7 +112,9 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
     await rideProvider.getRideById(_rideId!);
     setState(() {
       _ride = rideProvider.currentRide;
-      if (_ride != null && _ride!.pickupLat != null && _ride!.pickupLng != null) {
+      if (_ride != null &&
+          _ride!.pickupLat != null &&
+          _ride!.pickupLng != null) {
         _pickupLocation = LatLng(_ride!.pickupLat!, _ride!.pickupLng!);
       }
     });
@@ -229,15 +235,18 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
     if (_rideId == null) return;
     try {
       await context.read<RideProvider>().startRide(_rideId!);
-      Navigator.pushReplacementNamed(context, '/passenger-pickup', arguments: {'rideId': _rideId});
+      Navigator.pushReplacementNamed(context, '/passenger-pickup',
+          arguments: {'rideId': _rideId});
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final center = _currentLocation ?? _pickupLocation ?? LatLng(-1.2864, 36.8172);
+    final center =
+        _currentLocation ?? _pickupLocation ?? LatLng(-1.2864, 36.8172);
 
     return Scaffold(
       body: Stack(
@@ -253,7 +262,8 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tiles.locationiq.com/v3/streets/r/{z}/{x}/{y}.png?key=pk.48e2dedac41ff32af8621c2414ee25e8',
+                urlTemplate:
+                    'https://tiles.locationiq.com/v3/streets/r/{z}/{x}/{y}.png?key=pk.48e2dedac41ff32af8621c2414ee25e8',
                 userAgentPackageName: 'com.kva.driver',
               ),
 
@@ -360,7 +370,7 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
                         children: [
                           Text(
                             _currentInstruction!,
-                            style: const TextStyle(
+                            style: GoogleFonts.geologica(
                               color: Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -369,7 +379,7 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
                           const SizedBox(height: 4),
                           Text(
                             '${_routeDistanceKm.toStringAsFixed(1)} km • ${_routeDurationMin.round()} min to pickup',
-                            style: TextStyle(
+                            style: GoogleFonts.geologica(
                               color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 12,
                             ),
@@ -419,11 +429,13 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
                       children: [
                         Text(
                           'Picking up ${_ride?.rider?.fullName ?? 'Passenger'}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: GoogleFonts.geologica(
+                              fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         Text(
                           '${_ride?.pickupAddress ?? 'Pickup Location'}',
-                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                          style: GoogleFonts.geologica(
+                              color: Colors.grey, fontSize: 12),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
@@ -431,7 +443,8 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
                   ),
                   IconButton(
                     onPressed: () async => _rideId != null
-                        ? await ChatCallService.initiateCall(context: context, rideId: int.parse(_rideId!))
+                        ? await ChatCallService.initiateCall(
+                            context: context, rideId: int.parse(_rideId!))
                         : null,
                     icon: const Icon(Icons.phone, color: Color(0xFF0066CC)),
                   ),
@@ -440,7 +453,8 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
                         ? await ChatCallService.openChat(
                             context: context,
                             rideId: int.parse(_rideId!),
-                            passengerName: _ride?.rider?.fullName ?? "Passenger",
+                            passengerName:
+                                _ride?.rider?.fullName ?? "Passenger",
                           )
                         : null,
                     icon: const Icon(Icons.message, color: Color(0xFF0066CC)),
@@ -550,14 +564,15 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     'En route to pickup',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.geologica(
+                        fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Follow navigation to reach passenger',
-                    style: TextStyle(color: Colors.grey),
+                    style: GoogleFonts.geologica(color: Colors.grey),
                   ),
                   const SizedBox(height: 20),
                   Container(
@@ -571,10 +586,12 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Distance to pickup'),
+                            Text('Distance to pickup',
+                                style: GoogleFonts.geologica()),
                             Text(
                               '${_routeDistanceKm.toStringAsFixed(1)} km',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: GoogleFonts.geologica(
+                                  fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -582,10 +599,11 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('ETA'),
+                            Text('ETA', style: GoogleFonts.geologica()),
                             Text(
                               '${_routeDurationMin.round()} min',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: GoogleFonts.geologica(
+                                  fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -593,12 +611,13 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Estimated fare'),
+                            Text('Estimated fare',
+                                style: GoogleFonts.geologica()),
                             Text(
                               '\$${_ride?.fare?.toStringAsFixed(2) ?? '0.00'}',
-                              style: const TextStyle(
+                              style: GoogleFonts.geologica(
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF0066CC),
+                                color: const Color(0xFF0066CC),
                               ),
                             ),
                           ],
@@ -614,11 +633,15 @@ class _EnRoutePickupScreenState extends State<EnRoutePickupScreen> {
                       onPressed: _arrivedAtPickup,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0066CC),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Arrived at Pickup',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                        style: GoogleFonts.geologica(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white),
                       ),
                     ),
                   ),

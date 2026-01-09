@@ -43,7 +43,8 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       if (args != null && args['rideId'] != null) {
         _rideId = args['rideId'];
         _loadRideDetails();
@@ -76,7 +77,8 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
       // Get initial location
       final locationData = await _location.getLocation();
       setState(() {
-        _currentLocation = LatLng(locationData.latitude!, locationData.longitude!);
+        _currentLocation =
+            LatLng(locationData.latitude!, locationData.longitude!);
       });
 
       // Calculate route with current location
@@ -89,7 +91,8 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
         try {
           final locationData = await _location.getLocation();
           setState(() {
-            _currentLocation = LatLng(locationData.latitude!, locationData.longitude!);
+            _currentLocation =
+                LatLng(locationData.latitude!, locationData.longitude!);
           });
 
           // Update driver location to server
@@ -112,10 +115,12 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
     if (_rideId == null) return;
     final rideProvider = context.read<RideProvider>();
     await rideProvider.getRideById(_rideId!);
-    
+
     setState(() {
       _ride = rideProvider.currentRide;
-      if (_ride != null && _ride!.dropoffLat != null && _ride!.dropoffLng != null) {
+      if (_ride != null &&
+          _ride!.dropoffLat != null &&
+          _ride!.dropoffLng != null) {
         _dropoffLocation = LatLng(_ride!.dropoffLat!, _ride!.dropoffLng!);
       }
     });
@@ -270,7 +275,8 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
     }
   }
@@ -299,7 +305,8 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tiles.locationiq.com/v3/streets/r/{z}/{x}/{y}.png?key=pk.48e2dedac41ff32af8621c2414ee25e8',
+                urlTemplate:
+                    'https://tiles.locationiq.com/v3/streets/r/{z}/{x}/{y}.png?key=pk.48e2dedac41ff32af8621c2414ee25e8',
                 userAgentPackageName: 'com.kva.driver',
               ),
 
@@ -574,14 +581,16 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.blue[100],
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       'Trip in progress',
-                      style: TextStyle(color: Colors.blue[700], fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: Colors.blue[700], fontWeight: FontWeight.w600),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -594,7 +603,8 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                           _ride?.rider?.firstName?.isNotEmpty == true
                               ? _ride!.rider!.firstName![0].toUpperCase()
                               : 'P',
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -604,7 +614,8 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                           children: [
                             Text(
                               _ride?.rider?.fullName ?? 'Passenger',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             Text(
                               'Going to ${_ride?.dropoffAddress ?? 'Destination'}',
@@ -618,19 +629,24 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                         children: [
                           IconButton(
                             onPressed: () async => _rideId != null
-                                ? await ChatCallService.initiateCall(context: context, rideId: int.parse(_rideId!))
+                                ? await ChatCallService.initiateCall(
+                                    context: context,
+                                    rideId: int.parse(_rideId!))
                                 : null,
-                            icon: const Icon(Icons.phone, color: Color(0xFF0066CC)),
+                            icon: const Icon(Icons.phone,
+                                color: Color(0xFF0066CC)),
                           ),
                           IconButton(
                             onPressed: () async => _rideId != null
                                 ? await ChatCallService.openChat(
                                     context: context,
                                     rideId: int.parse(_rideId!),
-                                    passengerName: _ride?.rider?.fullName ?? "Passenger",
+                                    passengerName:
+                                        _ride?.rider?.fullName ?? "Passenger",
                                   )
                                 : null,
-                            icon: const Icon(Icons.message, color: Color(0xFF0066CC)),
+                            icon: const Icon(Icons.message,
+                                color: Color(0xFF0066CC)),
                           ),
                         ],
                       ),
@@ -645,16 +661,20 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.location_on, color: Colors.red, size: 20),
+                        const Icon(Icons.location_on,
+                            color: Colors.red, size: 20),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Destination', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                              const Text('Destination',
+                                  style: TextStyle(
+                                      color: Colors.grey, fontSize: 12)),
                               Text(
                                 _ride?.dropoffAddress ?? 'Loading...',
-                                style: const TextStyle(fontWeight: FontWeight.w500),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w500),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
@@ -662,7 +682,9 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                         ),
                         Text(
                           'ETA: ${_routeDurationMin.round()} min',
-                          style: const TextStyle(color: Color(0xFF0066CC), fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                              color: Color(0xFF0066CC),
+                              fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -675,11 +697,15 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
                       onPressed: _completeTrip,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0066CC),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       child: const Text(
                         'Complete Trip',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white),
                       ),
                     ),
                   ),
@@ -697,7 +723,8 @@ class _TripInProgressScreenState extends State<TripInProgressScreen> {
       children: [
         Icon(icon, color: const Color(0xFF0066CC)),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(value,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
       ],
     );

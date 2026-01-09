@@ -39,6 +39,35 @@ class _DriverSignUpSignInScreenState extends State<DriverSignUpSignInScreen> {
     super.dispose();
   }
 
+  /// Normalize phone number to E.164 format with + prefix
+  String _normalizePhoneNumber(String phone) {
+    String cleaned = phone.replaceAll(RegExp(r'[\s\-()]'), '');
+
+    // Already has + prefix
+    if (cleaned.startsWith('+')) {
+      return cleaned;
+    }
+
+    // Kenyan format without + (e.g., 254XXXXXXXXX)
+    if (cleaned.startsWith('254') && cleaned.length >= 12) {
+      return '+$cleaned';
+    }
+
+    // Kenyan local format (07XXXXXXXX or 7XXXXXXXX)
+    if (RegExp(r'^0?7\d{8}$').hasMatch(cleaned)) {
+      return '+254${cleaned.substring(cleaned.length - 9)}';
+    }
+
+    // US format (10 digits or 1 + 10 digits)
+    if (RegExp(r'^1?\d{10}$').hasMatch(cleaned)) {
+      final digits = cleaned.substring(cleaned.length - 10);
+      return '+1$digits';
+    }
+
+    // Default: add + prefix
+    return '+$cleaned';
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -54,17 +83,20 @@ class _DriverSignUpSignInScreenState extends State<DriverSignUpSignInScreen> {
 
     setState(() => _isLoading = true);
 
+    final normalizedPhone =
+        _normalizePhoneNumber(_signInPhoneController.text.trim());
+    print(
+        '📱 Sign in with phone: $normalizedPhone (original: ${_signInPhoneController.text.trim()})');
+
     final provider = context.read<AppProvider>();
-    final success = await provider.requestOtp(
-      _signInPhoneController.text.trim(),
-    );
+    final success = await provider.requestOtp(normalizedPhone);
 
     if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (success) {
       Navigator.pushNamed(context, '/phone-verification', arguments: {
-        'phoneNumber': _signInPhoneController.text.trim(),
+        'phoneNumber': normalizedPhone,
       });
     } else {
       _showError('Login failed. Please try again.');
