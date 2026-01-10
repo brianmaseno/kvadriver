@@ -1,8 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'token_service.dart';
 
 class ApiService {
@@ -1005,19 +1002,6 @@ class ApiService {
     }
   }
 
-  // Get driver profile
-  static Future<Map<String, dynamic>> getDriverProfile(int userId) async {
-    try {
-      final response = await _makeRequest((headers) => http.get(
-          Uri.parse('$baseUrl/drivers/profile/$userId'),
-          headers: headers));
-      return jsonDecode(response.body);
-    } catch (e) {
-      print('🔴 Get Driver Profile Error: $e');
-      rethrow;
-    }
-  }
-
   // ===== CHAT METHODS =====
 
   // Get chat access token
@@ -1707,5 +1691,172 @@ class ApiService {
       print('Logout error: $e');
     }
     await clearAuthToken();
+  }
+
+  // ===== NOTIFICATION METHODS =====
+
+  // Get notifications with pagination
+  static Future<Map<String, dynamic>> getNotifications({
+    int page = 1,
+    int limit = 20,
+    bool? unreadOnly,
+  }) async {
+    try {
+      final queryParams = {
+        'page': page.toString(),
+        'limit': limit.toString(),
+        if (unreadOnly != null) 'unreadOnly': unreadOnly.toString(),
+      };
+
+      final uri = Uri.parse('$baseUrl/notifications')
+          .replace(queryParameters: queryParams);
+
+      print('🔔 API: Getting notifications');
+      print('🔔 URL: $uri');
+
+      final headers = await _getHeaders();
+      final response = await http.get(uri, headers: headers);
+
+      print('🔔 Response Status: ${response.statusCode}');
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('🔴 Get Notifications Error: $e');
+      rethrow;
+    }
+  }
+
+  // Get unread notification count
+  static Future<Map<String, dynamic>> getUnreadNotificationCount() async {
+    try {
+      final uri = Uri.parse('$baseUrl/notifications/unread-count');
+
+      print('🔔 API: Getting unread count');
+      final headers = await _getHeaders();
+      final response = await http.get(uri, headers: headers);
+
+      print('🔔 Response Status: ${response.statusCode}');
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('🔴 Get Unread Count Error: $e');
+      rethrow;
+    }
+  }
+
+  // Mark notification as read
+  static Future<Map<String, dynamic>> markNotificationAsRead(
+      int notificationId) async {
+    try {
+      final uri = Uri.parse('$baseUrl/notifications/$notificationId/read');
+
+      print('🔔 API: Marking notification as read');
+      final headers = await _getHeaders();
+      final response = await http.put(uri, headers: headers);
+
+      print('🔔 Response Status: ${response.statusCode}');
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('🔴 Mark Notification Read Error: $e');
+      rethrow;
+    }
+  }
+
+  // Mark all notifications as read
+  static Future<Map<String, dynamic>> markAllNotificationsAsRead() async {
+    try {
+      final uri = Uri.parse('$baseUrl/notifications/read-all');
+
+      print('🔔 API: Marking all notifications as read');
+      final headers = await _getHeaders();
+      final response = await http.put(uri, headers: headers);
+
+      print('🔔 Response Status: ${response.statusCode}');
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('🔴 Mark All Notifications Read Error: $e');
+      rethrow;
+    }
+  }
+
+  // Delete notification
+  static Future<Map<String, dynamic>> deleteNotification(
+      int notificationId) async {
+    try {
+      final uri = Uri.parse('$baseUrl/notifications/$notificationId');
+
+      print('🔔 API: Deleting notification');
+      final headers = await _getHeaders();
+      final response = await http.delete(uri, headers: headers);
+
+      print('🔔 Response Status: ${response.statusCode}');
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('🔴 Delete Notification Error: $e');
+      rethrow;
+    }
+  }
+
+  // ===== DRIVER PROFILE METHODS =====
+
+  // Get full driver profile with vehicle, ratings, and stats
+  static Future<Map<String, dynamic>> getDriverProfile() async {
+    try {
+      final uri = Uri.parse('$baseUrl/driver/profile');
+
+      print('👤 API: Getting driver profile');
+      print('👤 URL: $uri');
+
+      final headers = await _getHeaders();
+      final response = await http.get(uri, headers: headers);
+
+      print('👤 Response Status: ${response.statusCode}');
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('🔴 Get Driver Profile Error: $e');
+      rethrow;
+    }
+  }
+
+  // Update driver profile
+  static Future<Map<String, dynamic>> updateDriverProfile(
+      Map<String, dynamic> updates) async {
+    try {
+      final uri = Uri.parse('$baseUrl/driver/profile');
+
+      print('👤 API: Updating driver profile');
+      final headers = await _getHeaders();
+      final response = await http.put(
+        uri,
+        headers: headers,
+        body: jsonEncode(updates),
+      );
+
+      print('👤 Response Status: ${response.statusCode}');
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('🔴 Update Driver Profile Error: $e');
+      rethrow;
+    }
+  }
+
+  // Update vehicle info
+  static Future<Map<String, dynamic>> updateVehicle(
+      Map<String, dynamic> updates) async {
+    try {
+      final uri = Uri.parse('$baseUrl/driver/vehicle');
+
+      print('🚗 API: Updating vehicle');
+      final headers = await _getHeaders();
+      final response = await http.put(
+        uri,
+        headers: headers,
+        body: jsonEncode(updates),
+      );
+
+      print('🚗 Response Status: ${response.statusCode}');
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('🔴 Update Vehicle Error: $e');
+      rethrow;
+    }
   }
 }

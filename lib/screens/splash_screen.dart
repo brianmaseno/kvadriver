@@ -25,11 +25,12 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    // Check if this is first time user
+    // Check if this is first time user (onboarding not completed)
     final prefs = await SharedPreferences.getInstance();
-    final isFirstTime = prefs.getBool('driver_first_time_user') ?? true;
+    final hasCompletedOnboarding =
+        prefs.getBool('driver_onboarding_completed') ?? false;
 
-    if (isFirstTime) {
+    if (!hasCompletedOnboarding) {
       // First time user, show onboarding
       Navigator.pushReplacementNamed(context, '/onboarding');
       return;

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:location/location.dart';
 import 'api_service.dart';
@@ -11,8 +12,12 @@ class DriverLocationService extends ChangeNotifier {
   factory DriverLocationService() => _instance;
   DriverLocationService._internal();
 
-  // Location plugin
+  // Location plugin (may not work on desktop platforms)
   final Location _location = Location();
+
+  // Check if running on a supported platform for location services
+  bool get _isLocationPlatformSupported =>
+      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   // State
   bool _isOnline = false;
@@ -56,6 +61,50 @@ class DriverLocationService extends ChangeNotifier {
     if (_isOnline) return true;
 
     try {
+      // For desktop platforms (Windows/macOS/Linux), use provided coordinates or mock location
+      if (!_isLocationPlatformSupported) {
+        print('⚠️ Running on desktop - using mock/provided location');
+
+        // Use provided coordinates or default to a mock location
+        final lat = latitude ?? 0.0; // Default mock latitude
+        final lng = longitude ?? 0.0; // Default mock longitude
+
+        if (lat == 0.0 || lng == 0.0) {
+          _errorMessage =
+              'Please provide location coordinates for desktop testing';
+          notifyListeners();
+          return false;
+        }
+
+        _externalLocation = {'latitude': lat, 'longitude': lng};
+
+        // Call backend to go online with provided coordinates
+        final response = await ApiService.goOnline(
+          latitude: lat,
+          longitude: lng,
+          heading: 0.0,
+          speed: 0.0,
+          accuracy: 10.0,
+        );
+
+        if (response['success'] != true) {
+          _errorMessage = response['message'] ?? 'Failed to go online';
+          notifyListeners();
+          return false;
+        }
+
+        _isOnline = true;
+        _errorMessage = null;
+
+        // Start periodic updates (will use external location)
+        _startLocationUpdates();
+
+        notifyListeners();
+        print('🟢 Driver is now ONLINE (Desktop mode)');
+        return true;
+      }
+
+      // Mobile platform - use actual location services
       // Check location permissions
       bool serviceEnabled = await _location.serviceEnabled();
       if (!serviceEnabled) {
@@ -184,21 +233,53 @@ class DriverLocationService extends ChangeNotifier {
     _isUpdating = true;
 
     try {
-      // Get current location
-      _currentLocation = await _location.getLocation();
+      double? lat;
+      double? lng;
+      double? heading;
+      double? speed;
+      double? accuracy;
 
-      if (_currentLocation == null) {
+      // Get location based on platform
+      if (_isLocationPlatformSupported) {
+        // Mobile - use actual GPS
+        _currentLocation = await _location.getLocation();
+
+        if (_currentLocation == null) {
+          _isUpdating = false;
+          return;
+        }
+
+        lat = _currentLocation!.latitude;
+        lng = _currentLocation!.longitude;
+        heading = _currentLocation!.heading;
+        speed = _currentLocation!.speed;
+        accuracy = _currentLocation!.accuracy;
+      } else {
+        // Desktop - use external/mock location
+        if (_externalLocation != null) {
+          lat = _externalLocation!['latitude'] as double?;
+          lng = _externalLocation!['longitude'] as double?;
+          heading = 0.0;
+          speed = 0.0;
+          accuracy = 10.0;
+        } else {
+          _isUpdating = false;
+          return;
+        }
+      }
+
+      if (lat == null || lng == null) {
         _isUpdating = false;
         return;
       }
 
       // Send location update to backend
       final response = await ApiService.updateDriverLocation(
-        latitude: _currentLocation!.latitude!,
-        longitude: _currentLocation!.longitude!,
-        heading: _currentLocation!.heading,
-        speed: _currentLocation!.speed,
-        accuracy: _currentLocation!.accuracy,
+        latitude: lat,
+        longitude: lng,
+        heading: heading,
+        speed: speed,
+        accuracy: accuracy,
       );
 
       if (response['success'] == true) {

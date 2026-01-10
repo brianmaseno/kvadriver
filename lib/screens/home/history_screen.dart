@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/providers/ride_provider.dart';
-import '../../data/models/ride_model.dart';
+import '../../data/models/models.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -15,9 +15,9 @@ class _HistoryScreenState extends State<HistoryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = true;
-  List<RideModel> _allRides = [];
-  List<RideModel> _completedRides = [];
-  List<RideModel> _cancelledRides = [];
+  List<Ride> _allRides = [];
+  List<Ride> _completedRides = [];
+  List<Ride> _cancelledRides = [];
 
   @override
   void initState() {
@@ -106,7 +106,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     );
   }
 
-  Widget _buildRidesList(List<RideModel> rides) {
+  Widget _buildRidesList(List<Ride> rides) {
     if (rides.isEmpty) {
       return Center(
         child: Column(
@@ -149,7 +149,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     );
   }
 
-  Widget _buildHistoryItem(RideModel ride) {
+  Widget _buildHistoryItem(Ride ride) {
     final statusColor = _getStatusColor(ride.status);
     final driverEarning = (ride.fare ?? 0) * 0.80;
 
@@ -402,7 +402,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     }
   }
 
-  void _showRideDetails(RideModel ride) {
+  void _showRideDetails(Ride ride) {
     final driverEarning = (ride.fare ?? 0) * 0.80;
 
     showModalBottomSheet(

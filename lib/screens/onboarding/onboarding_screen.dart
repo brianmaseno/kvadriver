@@ -18,17 +18,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     OnboardingPage(
       image: 'lib/images/image2.jpg',
       title: 'Drive & Earn',
-      description: 'Turn your car into a money-making machine. Set your own schedule and be your own boss',
+      description:
+          'Turn your car into a money-making machine. Set your own schedule and be your own boss',
     ),
     OnboardingPage(
       image: 'lib/images/car.jpg',
       title: 'Smart Navigation',
-      description: 'Get optimized routes and real-time traffic updates to maximize your earnings per hour',
+      description:
+          'Get optimized routes and real-time traffic updates to maximize your earnings per hour',
     ),
     OnboardingPage(
       image: 'lib/images/image2.jpg',
       title: 'Weekly Payouts',
-      description: 'Track your earnings in real-time and get paid weekly directly to your bank account',
+      description:
+          'Track your earnings in real-time and get paid weekly directly to your bank account',
     ),
   ];
 
@@ -40,10 +43,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('driver_first_time_user', false);
-    
+    // Mark onboarding as completed so it doesn't show again
+    await prefs.setBool('driver_onboarding_completed', true);
+
     if (!mounted) return;
-    
+
     Navigator.pushReplacementNamed(context, '/auth');
   }
 

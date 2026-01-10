@@ -129,20 +129,40 @@ class Ride {
       driverId: json['driverId']?.toString(),
       pickupAddress: json['pickupAddress']?.toString(),
       dropoffAddress: json['dropoffAddress']?.toString(),
-      pickupLat: json['pickupLat'] != null ? (json['pickupLat'] as num).toDouble() : null,
-      pickupLng: json['pickupLng'] != null ? (json['pickupLng'] as num).toDouble() : null,
-      dropoffLat: json['dropoffLat'] != null ? (json['dropoffLat'] as num).toDouble() : null,
-      dropoffLng: json['dropoffLng'] != null ? (json['dropoffLng'] as num).toDouble() : null,
+      pickupLat: json['pickupLat'] != null
+          ? (json['pickupLat'] as num).toDouble()
+          : null,
+      pickupLng: json['pickupLng'] != null
+          ? (json['pickupLng'] as num).toDouble()
+          : null,
+      dropoffLat: json['dropoffLat'] != null
+          ? (json['dropoffLat'] as num).toDouble()
+          : null,
+      dropoffLng: json['dropoffLng'] != null
+          ? (json['dropoffLng'] as num).toDouble()
+          : null,
       status: json['status']?.toString() ?? 'unknown',
-      fare: json['estimatedFare'] != null ? (json['estimatedFare'] as num).toDouble() : null,
-      estimatedDuration: json['estimatedDuration'] != null ? (json['estimatedDuration'] as num).toDouble() : null,
-      distance: json['distance'] != null ? double.tryParse(json['distance'].toString()) : null,
+      fare: json['estimatedFare'] != null
+          ? (json['estimatedFare'] as num).toDouble()
+          : null,
+      estimatedDuration: json['estimatedDuration'] != null
+          ? (json['estimatedDuration'] as num).toDouble()
+          : null,
+      distance: json['distance'] != null
+          ? double.tryParse(json['distance'].toString())
+          : null,
       paymentMethod: json['paymentMethod']?.toString(),
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
+      createdAt:
+          json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      updatedAt:
+          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
       notes: json['notes']?.toString(),
-      finalFare: json['finalFare'] != null ? (json['finalFare'] as num).toDouble() : null,
-      odometerReading: json['odometerReading'] != null ? (json['odometerReading'] as num).toDouble() : null,
+      finalFare: json['finalFare'] != null
+          ? (json['finalFare'] as num).toDouble()
+          : null,
+      odometerReading: json['odometerReading'] != null
+          ? (json['odometerReading'] as num).toDouble()
+          : null,
     );
   }
 
@@ -170,6 +190,9 @@ class Ride {
       'odometerReading': odometerReading,
     };
   }
+
+  // Getter for rider name
+  String? get riderName => rider?.fullName;
 
   Ride copyWith({
     String? id,
@@ -258,15 +281,25 @@ class Location {
       userType: json['userType']?.toString() ?? 'driver',
       latitude: double.parse(json['latitude'].toString()),
       longitude: double.parse(json['longitude'].toString()),
-      heading: json['heading'] != null ? double.parse(json['heading'].toString()) : null,
-      speed: json['speed'] != null ? double.parse(json['speed'].toString()) : null,
-      rideId: json['rideId'] != null ? int.parse(json['rideId'].toString()) : null,
-      accuracy: json['accuracy'] != null ? int.parse(json['accuracy'].toString()) : null,
+      heading: json['heading'] != null
+          ? double.parse(json['heading'].toString())
+          : null,
+      speed:
+          json['speed'] != null ? double.parse(json['speed'].toString()) : null,
+      rideId:
+          json['rideId'] != null ? int.parse(json['rideId'].toString()) : null,
+      accuracy: json['accuracy'] != null
+          ? int.parse(json['accuracy'].toString())
+          : null,
       isActive: json['isActive'] ?? true,
       isLiveTracking: json['isLiveTracking'] ?? false,
-      lastLiveUpdate: json['lastLiveUpdate'] != null ? DateTime.parse(json['lastLiveUpdate']) : null,
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
+      lastLiveUpdate: json['lastLiveUpdate'] != null
+          ? DateTime.parse(json['lastLiveUpdate'])
+          : null,
+      createdAt:
+          json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      updatedAt:
+          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
     );
   }
 
@@ -374,9 +407,14 @@ class NearbyUser {
       userType: json['userType']?.toString() ?? 'driver',
       latitude: double.parse(json['latitude'].toString()),
       longitude: double.parse(json['longitude'].toString()),
-      accuracy: json['accuracy'] != null ? int.parse(json['accuracy'].toString()) : null,
-      heading: json['heading'] != null ? double.parse(json['heading'].toString()) : null,
-      speed: json['speed'] != null ? double.parse(json['speed'].toString()) : null,
+      accuracy: json['accuracy'] != null
+          ? int.parse(json['accuracy'].toString())
+          : null,
+      heading: json['heading'] != null
+          ? double.parse(json['heading'].toString())
+          : null,
+      speed:
+          json['speed'] != null ? double.parse(json['speed'].toString()) : null,
       distance: int.parse(json['distance'].toString()),
       timestamp: DateTime.parse(json['timestamp']),
     );
@@ -418,7 +456,9 @@ class ETAResult {
       duration: int.parse(json['duration'].toString()),
       durationWithTraffic: int.parse(json['durationWithTraffic'].toString()),
       trafficCondition: json['trafficCondition']?.toString() ?? 'unknown',
-      route: json['route'] != null ? List<Map<String, dynamic>>.from(json['route']) : null,
+      route: json['route'] != null
+          ? List<Map<String, dynamic>>.from(json['route'])
+          : null,
     );
   }
 

@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -10,6 +12,7 @@ import '../../data/services/api_service.dart';
 import '../../data/services/driver_location_service.dart';
 import '../../data/models/models.dart' as models;
 import '../../data/widgets/ride_request_popup.dart';
+import '../notifications/notifications_screen.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -28,17 +31,32 @@ class _HomeState extends State<Home> {
   bool _statusLoaded = false;
   bool _showRidePopup = false;
   Map<String, dynamic>? _currentRideRequest;
+  int _unreadNotificationCount = 0;
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
     _checkDriverStatus();
+    _loadUnreadNotificationCount();
     // Load pending rides initially
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadPendingRides();
       _listenForRideRequests();
     });
+  }
+
+  Future<void> _loadUnreadNotificationCount() async {
+    try {
+      final response = await ApiService.getUnreadNotificationCount();
+      if (response['success'] == true && response['data'] != null) {
+        setState(() {
+          _unreadNotificationCount = response['data']['unreadCount'] ?? 0;
+        });
+      }
+    } catch (e) {
+      print('Error loading notification count: $e');
+    }
   }
 
   void _listenForRideRequests() {
@@ -99,6 +117,16 @@ class _HomeState extends State<Home> {
 
   Future<void> _getCurrentLocation() async {
     try {
+      // For Windows/Desktop, use mock Nairobi location
+      if (!_isLocationPlatformSupported()) {
+        print('⚠️ Running on desktop - using mock location (Nairobi)');
+        setState(() {
+          _currentLocation = LatLng(-1.2864, 36.8172);
+          _locationLoaded = true;
+        });
+        return;
+      }
+
       bool serviceEnabled = await _location.serviceEnabled();
       if (!serviceEnabled) {
         serviceEnabled = await _location.requestService();
@@ -128,6 +156,19 @@ class _HomeState extends State<Home> {
       }
     } catch (e) {
       print('Error getting location: $e');
+      // Fallback to mock location
+      setState(() {
+        _currentLocation = LatLng(-1.2864, 36.8172);
+        _locationLoaded = true;
+      });
+    }
+  }
+
+  bool _isLocationPlatformSupported() {
+    try {
+      return Platform.isAndroid || Platform.isIOS;
+    } catch (e) {
+      return false; // Assume desktop if Platform check fails
     }
   }
 
@@ -468,6 +509,67 @@ class _HomeState extends State<Home> {
             right: 16,
             child: Column(
               children: [
+                // Notification bell button
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications_outlined, color: Colors.black87),
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NotificationsScreen(),
+                            ),
+                          );
+                          // Refresh count after returning from notifications screen
+                          _loadUnreadNotificationCount();
+                        },
+                      ),
+                      if (_unreadNotificationCount > 0)
+                        Positioned(
+                          right: 6,
+                          top: 6,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 18,
+                              minHeight: 18,
+                            ),
+                            child: Text(
+                              _unreadNotificationCount > 99 
+                                  ? '99+' 
+                                  : _unreadNotificationCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
                 // Location button
                 Container(
                   margin: const EdgeInsets.only(bottom: 8),

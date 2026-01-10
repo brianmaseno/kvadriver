@@ -22,7 +22,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadProfileData() async {
     setState(() => _isLoading = true);
     try {
-      await context.read<AppProvider>().getCurrentUser();
+      // Profile data is already loaded via currentUserData
+      await Future.delayed(Duration(milliseconds: 100));
     } catch (e) {
       print('Error loading profile: $e');
     }
